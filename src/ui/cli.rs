@@ -3,6 +3,8 @@
 
 use clap::{Parser, ArgAction};
 use std::io::{self, Write};
+use crate:: util::format::format_size; // ← اضافه
+
 
 #[derive(Parser, Debug)]
 #[command(name = "TondarDM", version, about = "Phase 0: metadata probe")]
@@ -31,7 +33,7 @@ pub fn print_meta(url: &str, name: &str, size: Option<u64>, ranges: bool) {
     println!("URL      : {url}");
     println!("Filename : {name}");
     match size {
-        Some(n) => println!("Size     : {n} bytes"),
+        Some(n) => println!("Size     : {}", format_size(n)),
         None    => println!("Size     : (unknown)"),
     }
     let flag = if ranges { "supported" } else { "not supported/unknown" };
