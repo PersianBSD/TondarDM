@@ -11,63 +11,49 @@ mod iox {pub mod file; pub mod state; }
 use crate::engine::prelude::{Result, DmError};   // ← مهم
 use crate::net::inspect::{self, ProbeMode};
 use crate::net::url::normalize_url;
-use crate::ui::cli;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // parse CLI args
-    let args = cli::parse_args();
-    let client = crate::http::client::build_client(&args)?;
+    let args = ui::cli::parse_args();
+    let client = http::client::build_client(&args)?;
 
-    // normalize URL (unwrap href.li and similar wrappers)
+    /*let meta = inspect::probe_url(&client, &args.url, ProbeMode::Auto)
+        .await
+        .map_err(|e| DmError::Other(format!("probe failed: {e}")))?;*/
     let normalized = normalize_url(&args.url);
-
-    // probe file meta
     let meta = inspect::probe_url(&client, &normalized, ProbeMode::Auto)
         .await
         .map_err(|e| DmError::Other(format!("probe failed: {e}")))?;
+    
+    ui::cli::print_meta(&meta.final_url, &meta.filename, meta.size, meta.accept_ranges);
 
-    cli::print_meta(&meta.final_url, &meta.filename, meta.size, meta.accept_ranges);
-
-    if !cli::confirm("Start download now?") {
+    if !ui::cli::confirm("Start download now?") {
         println!("Aborted by user.");
         return Ok(());
     }
 
-    // check if file already partially exists
-    let existing: u64 = match tokio::fs::metadata(&meta.filename).await {
-        Ok(m) => m.len(),
-        Err(_) => 0,
-    };
-
-    if existing > 0 && meta.accept_ranges {
-        println!("Resuming single download...");
-    } else if existing > 0 && !meta.accept_ranges {
-        println!("Starting single download (server does not support resume)...");
-    } else {
-        println!("Starting single download...");
-    }
-
-    // run the single download
-    match crate::download::single::download_single(
+    println!("Starting single download...");
+    // توجه: این match خودش نباید خروجی تابع باشد؛ بعدش یک Ok(()) بدهیم
+    match download::single::download_single(
         &client,
         &meta.final_url,
         &meta.filename,
         meta.size,
         meta.accept_ranges,
-        if args.if_range { meta.etag.as_deref() } else { None },
-        if args.if_range { meta.last_modified.as_deref() } else { None },
+        if args.if_range { meta.etag.as_deref() } else { None },           // ← با فلگ
+        if args.if_range { meta.last_modified.as_deref() } else { None },  // ← با فلگ
     ).await {
         Ok(()) => {
-            println!("✅ Download completed: {}", meta.filename);
+        println!("✅ Download completed: {}", meta.filename);
         }
         Err(DmError::Other(msg)) if msg == "cancelled" => {
             println!("⏸️ Paused by user (state saved).");
         }
         Err(e) => {
+            // خطای واقعی به بالا
             return Err(e);
         }
-    }
 
+    }
     Ok(())
 }

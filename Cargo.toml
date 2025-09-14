@@ -11,6 +11,7 @@ tokio = { version = "1", features = [
     "macros",
     "fs",
     "io-util",
+    "signal",
 ] }
 reqwest = { version = "0.12.23", features = [
     "rustls-tls",
@@ -30,6 +31,8 @@ toml = "0.9.5"
 futures-util = "0.3"
 indicatif = "0.18.0"
 thiserror = "2.0.16"
+serde_json = "1"
+percent-encoding = "2"
 
 [lib]
 name = "tondar_dm"

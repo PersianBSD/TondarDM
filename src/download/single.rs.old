@@ -8,9 +8,6 @@
 //! - Saves .state every ~1MiB to aid debugging/crash-resume
 //! - Light retry (3 attempts) on transient network errors
 
-//! Single-part downloader with robust resume, Ctrl+C, and light retry
-//! Author: Ali Asadi  | Team: Persian Developer Team | Email: persianbsd@gmail.com
-
 use crate::engine::prelude::*;
 use crate::iox::{file as iox, state as dlstate};
 use crate::iox::file::finalize_sync;
@@ -131,11 +128,11 @@ pub async fn download_single(
                 return Ok(());
             }
             Err(e) => {
-                // Cancel gracefully → propagate up so main پیام Completed را چاپ نکند
+                // Cancel gracefully
                 let is_cancel = matches!(&e, DmError::Other(msg) if msg == "cancelled");
                 if is_cancel {
                     eprintln!("Interrupted by user (Ctrl+C). State saved.");
-                    return Err(e);
+                    return Ok(());
                 }
                 // Transient network error? retry up to 3 times
                 if attempt < 3 {
@@ -227,7 +224,9 @@ async fn run_stream_to_file_with_state(
                 let _ = dlstate::save_state(&s).await;
                 return Err(DmError::Other("cancelled".into()));
             }
-            Err(tokio::sync::oneshot::error::TryRecvError::Empty) => { /* keep streaming */ }
+            Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {
+                // continue streaming
+            }
         }
 
         match stream.next().await {

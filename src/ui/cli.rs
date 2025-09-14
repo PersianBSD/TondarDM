@@ -3,7 +3,7 @@
 
 use clap::{Parser, ArgAction};
 use std::io::{self, Write};
-use crate:: util::format::format_size; // ← اضافه
+use crate::util::format::format_size; // ← اضافه
 
 
 #[derive(Parser, Debug)]
@@ -23,6 +23,9 @@ pub struct Args {
     /// Override User-Agent
     #[arg(long = "ua")]
     pub ua: Option<String>,
+    /// Send If-Range (ETag/Last-Modified) when resuming (off by default)
+    #[arg(long)]
+    pub if_range: bool,
 }
 
 pub fn parse_args() -> Args {
